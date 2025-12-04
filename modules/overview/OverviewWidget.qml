@@ -238,12 +238,21 @@ Item {
                             window.pressed = false;
                             window.Drag.active = false;
                             root.draggingFromWorkspace = -1;
+
                             if (targetWorkspace !== -1 && targetWorkspace !== windowData?.workspace.id) {
                                 Hyprland.dispatch(`movetoworkspacesilent ${targetWorkspace}, address:${window.windowData?.address}`);
                                 updateWindowPosition.restart();
                             } else {
-                                window.x = window.initX;
-                                window.y = window.initY;
+                                // Logic for moving floating windows within the same workspace
+                                if (!window.windowData.floating) {
+                                    updateWindowPosition.restart();
+                                    return;
+                                }
+                                // Calculate position percentage relative to the workspace preview
+                                const percentageX = Math.round((window.x - xOffset) / root.workspaceImplicitWidth * 100);
+                                const percentageY = Math.round((window.y - yOffset) / root.workspaceImplicitHeight * 100);
+
+                                Hyprland.dispatch(`movewindowpixel exact ${percentageX}% ${percentageY}%, address:${window.windowData?.address}`);
                             }
                         }
                         onClicked: event => {
