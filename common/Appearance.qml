@@ -3,46 +3,52 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import qs.Commons
 import "functions"
 
 Singleton {
     id: root
-    property QtObject m3colors
-    property QtObject animation
-    property QtObject animationCurves
-    property QtObject colors
-    property QtObject rounding
-    property QtObject font
-    property QtObject sizes
 
-    m3colors: QtObject {
+    // Mapped to Noctalia System Colors
+    property QtObject m3colors: QtObject {
         property bool darkmode: true
-        property color m3primary: "#E5B6F2"
-        property color m3onPrimary: "#452152"
-        property color m3primaryContainer: "#5D386A"
-        property color m3onPrimaryContainer: "#F9D8FF"
-        property color m3secondary: "#D5C0D7"
-        property color m3onSecondary: "#392C3D"
-        property color m3secondaryContainer: "#534457"
-        property color m3onSecondaryContainer: "#F2DCF3"
-        property color m3background: "#161217"
-        property color m3onBackground: "#EAE0E7"
-        property color m3surface: "#161217"
-        property color m3surfaceContainerLow: "#1F1A1F"
-        property color m3surfaceContainer: "#231E23"
-        property color m3surfaceContainerHigh: "#2D282E"
-        property color m3surfaceContainerHighest: "#383339"
-        property color m3onSurface: "#EAE0E7"
-        property color m3surfaceVariant: "#4C444D"
-        property color m3onSurfaceVariant: "#CFC3CD"
-        property color m3inverseSurface: "#EAE0E7"
-        property color m3inverseOnSurface: "#342F34"
-        property color m3outline: "#988E97"
-        property color m3outlineVariant: "#4C444D"
+
+        property color m3primary: Color.mPrimary
+        property color m3onPrimary: Color.mOnPrimary
+        property color m3primaryContainer: Color.mPrimaryContainer
+        property color m3onPrimaryContainer: Color.mOnPrimaryContainer
+
+        property color m3secondary: Color.mSecondary
+        property color m3onSecondary: Color.mOnSecondary
+        property color m3secondaryContainer: Color.mSecondaryContainer
+        property color m3onSecondaryContainer: Color.mOnSecondaryContainer
+
+        property color m3background: Color.mSurface
+        property color m3onBackground: Color.mOnSurface
+
+        property color m3surface: Color.mSurface
+
+        // *** FIX: Changed 0.9 to 0.96 ***
+        // 96% Dark Surface + 4% Light Text = Very subtle, almost black grey
+        property color m3surfaceContainerLow: ColorUtils.mix(Color.mSurface, Color.mOnSurface, 0.96)
+
+        // Adjusted these to be slightly lighter steps if needed
+        property color m3surfaceContainer: Color.mSurfaceContainer ?? ColorUtils.mix(Color.mSurface, Color.mOnSurface, 0.92)
+        property color m3surfaceContainerHigh: Color.mSurfaceContainerHigh ?? ColorUtils.mix(Color.mSurface, Color.mOnSurface, 0.88)
+        property color m3surfaceContainerHighest: Color.mSurfaceContainerHighest ?? ColorUtils.mix(Color.mSurface, Color.mOnSurface, 0.84)
+
+        property color m3onSurface: Color.mOnSurface
+        property color m3surfaceVariant: Color.mSurfaceVariant
+        property color m3onSurfaceVariant: Color.mOnSurfaceVariant
+
+        property color m3inverseSurface: Color.mInverseSurface
+        property color m3inverseOnSurface: Color.mInverseOnSurface
+        property color m3outline: Color.mOutline
+        property color m3outlineVariant: Color.mOutlineVariant
         property color m3shadow: "#000000"
     }
 
-    colors: QtObject {
+    property QtObject colors: QtObject {
         property color colSubtext: m3colors.m3outline
         property color colLayer0: m3colors.m3background
         property color colOnLayer0: m3colors.m3onBackground
@@ -67,7 +73,7 @@ Singleton {
         property color colOutline: m3colors.m3outline
     }
 
-    rounding: QtObject {
+    property QtObject rounding: QtObject {
         property int unsharpen: 2
         property int verysmall: 8
         property int small: 12
@@ -78,7 +84,7 @@ Singleton {
         property int windowRounding: 18
     }
 
-    font: QtObject {
+    property QtObject font: QtObject {
         property QtObject family: QtObject {
             property string main: "sans-serif"
             property string title: "sans-serif"
@@ -93,7 +99,7 @@ Singleton {
         }
     }
 
-    animationCurves: QtObject {
+    property QtObject animationCurves: QtObject {
         readonly property list<real> expressiveDefaultSpatial: [0.38, 1.21, 0.22, 1.00, 1, 1]
         readonly property list<real> expressiveEffects: [0.34, 0.80, 0.34, 1.00, 1, 1]
         readonly property list<real> emphasizedDecel: [0.05, 0.7, 0.1, 1, 1, 1]
@@ -101,7 +107,7 @@ Singleton {
         readonly property real expressiveEffectsDuration: 200
     }
 
-    animation: QtObject {
+    property QtObject animation: QtObject {
         property QtObject elementMove: QtObject {
             property int duration: animationCurves.expressiveDefaultSpatialDuration
             property int type: Easing.BezierSpline
@@ -142,7 +148,7 @@ Singleton {
         }
     }
 
-    sizes: QtObject {
+    property QtObject sizes: QtObject {
         property real elevationMargin: 10
     }
 }
