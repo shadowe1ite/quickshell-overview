@@ -1,24 +1,32 @@
 import QtQuick
-import Quickshell
 import Quickshell.Io
 import "./modules/overview"
 import "./services"
+import "./common"
 
 Item {
-    id: root
     property var pluginApi: null
 
-    // Instantiate the Overview Window
-    // It contains the PanelWindow which handles its own visibility/layering
-    Overview {
-        id: overviewInstance
+    onPluginApiChanged: updateConfig()
+    Component.onCompleted: updateConfig()
+
+    function updateConfig() {
+        if (!pluginApi)
+            return;
+        var s = pluginApi.pluginSettings || {};
+        var d = pluginApi.manifest?.metadata?.defaultSettings || {};
+
+        Config.options.overview.rows = s.rows ?? d.rows ?? Config.options.overview.rows;
+        Config.options.overview.columns = s.columns ?? d.columns ?? Config.options.overview.columns;
+        Config.options.overview.scale = s.scale ?? d.scale ?? Config.options.overview.scale;
+        Config.options.overview.topMargin = s.topMargin ?? d.topMargin ?? Config.options.overview.topMargin;
     }
 
-    // IPC Handler to control it externally
-    // Usage: qs ipc call plugin:noctalia-overview toggle
+    Overview {}
+
     IpcHandler {
-        target: "plugin:noctalia-overview"
-        
+        target: "plugin:quickshell-overview"
+
         function toggle() {
             GlobalStates.overviewOpen = !GlobalStates.overviewOpen;
         }

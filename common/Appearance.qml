@@ -9,42 +9,38 @@ import "functions"
 Singleton {
     id: root
 
-    // Mapped to Noctalia System Colors
     property QtObject m3colors: QtObject {
         property bool darkmode: true
 
-        property color m3primary: Color.mPrimary
-        property color m3onPrimary: Color.mOnPrimary
-        property color m3primaryContainer: Color.mPrimaryContainer
-        property color m3onPrimaryContainer: Color.mOnPrimaryContainer
+        property color m3primary: Color.mPrimary ?? "#000000"
+        property color m3onPrimary: Color.mOnPrimary ?? "#FFFFFF"
+        property color m3primaryContainer: Color.mPrimaryContainer ?? "#000000"
+        property color m3onPrimaryContainer: Color.mOnPrimaryContainer ?? "#FFFFFF"
 
-        property color m3secondary: Color.mSecondary
-        property color m3onSecondary: Color.mOnSecondary
-        property color m3secondaryContainer: Color.mSecondaryContainer
-        property color m3onSecondaryContainer: Color.mOnSecondaryContainer
+        property color m3secondary: Color.mSecondary ?? "#000000"
+        property color m3onSecondary: Color.mOnSecondary ?? "#FFFFFF"
+        property color m3secondaryContainer: Color.mSecondaryContainer ?? "#000000"
+        property color m3onSecondaryContainer: Color.mOnSecondaryContainer ?? "#FFFFFF"
 
-        property color m3background: Color.mSurface
-        property color m3onBackground: Color.mOnSurface
+        property color m3background: Color.mSurface ?? "#000000"
+        property color m3onBackground: Color.mOnSurface ?? "#FFFFFF"
 
-        property color m3surface: Color.mSurface
+        property color m3surface: Color.mSurface ?? "#000000"
 
-        // *** FIX: Changed 0.9 to 0.96 ***
-        // 96% Dark Surface + 4% Light Text = Very subtle, almost black grey
-        property color m3surfaceContainerLow: ColorUtils.mix(Color.mSurface, Color.mOnSurface, 0.96)
+        property color m3surfaceContainerLow: ColorUtils.mix(Color.mSurface ?? "#000000", Color.mOnSurface ?? "#FFFFFF", 0.96)
 
-        // Adjusted these to be slightly lighter steps if needed
-        property color m3surfaceContainer: Color.mSurfaceContainer ?? ColorUtils.mix(Color.mSurface, Color.mOnSurface, 0.92)
-        property color m3surfaceContainerHigh: Color.mSurfaceContainerHigh ?? ColorUtils.mix(Color.mSurface, Color.mOnSurface, 0.88)
-        property color m3surfaceContainerHighest: Color.mSurfaceContainerHighest ?? ColorUtils.mix(Color.mSurface, Color.mOnSurface, 0.84)
+        property color m3surfaceContainer: Color.mSurfaceContainer ?? ColorUtils.mix(Color.mSurface ?? "#000000", Color.mOnSurface ?? "#FFFFFF", 0.92)
+        property color m3surfaceContainerHigh: Color.mSurfaceContainerHigh ?? ColorUtils.mix(Color.mSurface ?? "#000000", Color.mOnSurface ?? "#FFFFFF", 0.88)
+        property color m3surfaceContainerHighest: Color.mSurfaceContainerHighest ?? ColorUtils.mix(Color.mSurface ?? "#000000", Color.mOnSurface ?? "#FFFFFF", 0.84)
 
-        property color m3onSurface: Color.mOnSurface
-        property color m3surfaceVariant: Color.mSurfaceVariant
-        property color m3onSurfaceVariant: Color.mOnSurfaceVariant
+        property color m3onSurface: Color.mOnSurface ?? "#FFFFFF"
+        property color m3surfaceVariant: Color.mSurfaceVariant ?? "#000000"
+        property color m3onSurfaceVariant: Color.mOnSurfaceVariant ?? "#FFFFFF"
 
-        property color m3inverseSurface: Color.mInverseSurface
-        property color m3inverseOnSurface: Color.mInverseOnSurface
-        property color m3outline: Color.mOutline
-        property color m3outlineVariant: Color.mOutlineVariant
+        property color m3inverseSurface: Color.mInverseSurface ?? "#FFFFFF"
+        property color m3inverseOnSurface: Color.mInverseOnSurface ?? "#000000"
+        property color m3outline: Color.mOutline ?? "#808080"
+        property color m3outlineVariant: Color.mOutlineVariant ?? "#808080"
         property color m3shadow: "#000000"
     }
 

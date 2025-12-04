@@ -17,8 +17,9 @@
   "metadata": {
     "defaultSettings": {
       "rows": 2,
-      "columns": 5,
-      "scale": 0.24
+      "columns": 4,
+      "scale": 0.24,
+      "topMargin": 10
     }
   }
 }
