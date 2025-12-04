@@ -1,0 +1,24 @@
+{
+  "id": "quickshell-overview",
+  "name": "Workspace Overview",
+  "version": "1.0.0",
+  "author": "shadowe1ite",
+  "description": "A Hyprland workspace overview with live previews.",
+  "repository": "https://github.com/Shanu-Kumawat/quickshell-overview",
+  "minNoctaliaVersion": "3.6.0",
+  "license": "GPL-3.0",
+  "entryPoints": {
+    "main": "Main.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "dependencies": {
+    "plugins": []
+  },
+  "metadata": {
+    "defaultSettings": {
+      "rows": 2,
+      "columns": 5,
+      "scale": 0.24
+    }
+  }
+}

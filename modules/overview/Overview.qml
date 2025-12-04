@@ -34,8 +34,8 @@ Scope {
             anchors {
                 top: true
                 bottom: true
-                left: !(Config?.options.overview.enable ?? true) 
-                right: !(Config?.options.overview.enable ?? true) 
+                left: !(Config?.options.overview.enable ?? true)
+                right: !(Config?.options.overview.enable ?? true)
             }
 
             HyprlandFocusGrab {
@@ -88,22 +88,26 @@ Scope {
                         const currentGroup = Math.floor((currentId - 1) / workspacesPerGroup);
                         const minWorkspaceId = currentGroup * workspacesPerGroup + 1;
                         const maxWorkspaceId = minWorkspaceId + workspacesPerGroup - 1;
-                        
+
                         let targetId;
                         if (event.key === Qt.Key_Left) {
                             targetId = currentId - 1;
-                            if (targetId < minWorkspaceId) targetId = maxWorkspaceId;
+                            if (targetId < minWorkspaceId)
+                                targetId = maxWorkspaceId;
                         } else if (event.key === Qt.Key_Right) {
                             targetId = currentId + 1;
-                            if (targetId > maxWorkspaceId) targetId = minWorkspaceId;
+                            if (targetId > maxWorkspaceId)
+                                targetId = minWorkspaceId;
                         } else if (event.key === Qt.Key_Up) {
                             targetId = currentId - Config.options.overview.columns;
-                            if (targetId < minWorkspaceId) targetId += workspacesPerGroup;
+                            if (targetId < minWorkspaceId)
+                                targetId += workspacesPerGroup;
                         } else {
                             targetId = currentId + Config.options.overview.columns;
-                            if (targetId > maxWorkspaceId) targetId -= workspacesPerGroup;
+                            if (targetId > maxWorkspaceId)
+                                targetId -= workspacesPerGroup;
                         }
-                        
+
                         Hyprland.dispatch("workspace " + targetId);
                         event.accepted = true;
                     }
@@ -128,20 +132,6 @@ Scope {
                     }
                 }
             }
-        }
-    }
-    
-    IpcHandler {
-        target: "overview"
-
-        function toggle() {
-            GlobalStates.overviewOpen = !GlobalStates.overviewOpen;
-        }
-        function close() {
-            GlobalStates.overviewOpen = false;
-        }
-        function open() {
-            GlobalStates.overviewOpen = true;
         }
     }
 }
