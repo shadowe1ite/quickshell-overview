@@ -13,6 +13,7 @@ Singleton {
             property int columns: 5
             property real scale: 0.16
             property int topMargin: 100
+            property bool centerIcons: false
             property bool enable: true
         }
 

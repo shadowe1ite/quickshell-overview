@@ -20,6 +20,7 @@ Item {
         Config.options.overview.columns = s.columns ?? d.columns ?? Config.options.overview.columns;
         Config.options.overview.scale = s.scale ?? d.scale ?? Config.options.overview.scale;
         Config.options.overview.topMargin = s.topMargin ?? d.topMargin ?? Config.options.overview.topMargin;
+        Config.options.overview.centerIcons = s.centerIcons ?? d.centerIcons ?? Config.options.overview.centerIcons;
     }
 
     Overview {}

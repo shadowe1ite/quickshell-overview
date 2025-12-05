@@ -7,7 +7,7 @@ import "../../common"
 import "../../common/functions"
 import "../../services"
 
-Item { // Window
+Item {
     id: root
     property var toplevel
     property var windowData
@@ -27,9 +27,12 @@ Item { // Window
     property bool hovered: false
     property bool pressed: false
 
-    property var iconToWindowRatio: 0.25
+    property bool centerIcons: Config.options.overview.centerIcons
+    property var iconToWindowRatio: centerIcons ? 0.25 : 0.25
+    property var iconGapRatio: 0.06
     property var xwaylandIndicatorToIconRatio: 0.35
     property var iconToWindowRatioCompact: 0.45
+
     property var entry: DesktopEntries.heuristicLookup(windowData?.class)
     property var iconPath: Quickshell.iconPath(entry?.icon ?? windowData?.class ?? "application-x-executable", "image-missing")
     property bool compactMode: Appearance.font.pixelSize.smaller * 4 > targetWindowHeight || Appearance.font.pixelSize.smaller * 4 > targetWindowWidth
@@ -78,29 +81,31 @@ Item { // Window
             border.width: 1
         }
 
-        ColumnLayout {
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.left: parent.left
-            anchors.right: parent.right
-            spacing: Appearance.font.pixelSize.smaller * 0.5
+        Image {
+            id: windowIcon
+            property real baseSize: Math.min(root.targetWindowWidth, root.targetWindowHeight)
 
-            Image {
-                id: windowIcon
-                property var iconSize: {
-                    return Math.min(targetWindowWidth, targetWindowHeight) * (root.compactMode ? root.iconToWindowRatioCompact : root.iconToWindowRatio) / (root.monitorData?.scale ?? 1);
-                }
-                Layout.alignment: Qt.AlignHCenter
-                source: root.iconPath
-                width: iconSize
-                height: iconSize
-                sourceSize: Qt.size(iconSize, iconSize)
+            anchors {
+                top: root.centerIcons ? undefined : parent.top
+                left: root.centerIcons ? undefined : parent.left
+                centerIn: root.centerIcons ? parent : undefined
+                margins: baseSize * root.iconGapRatio
+            }
 
-                Behavior on width {
-                    animation: Appearance.animation.elementMoveEnter.numberAnimation.createObject(this)
-                }
-                Behavior on height {
-                    animation: Appearance.animation.elementMoveEnter.numberAnimation.createObject(this)
-                }
+            property var iconSize: {
+                return Math.min(targetWindowWidth, targetWindowHeight) * (root.compactMode ? root.iconToWindowRatioCompact : root.iconToWindowRatio) / (root.monitorData?.scale ?? 1);
+            }
+
+            source: root.iconPath
+            width: iconSize
+            height: iconSize
+            sourceSize: Qt.size(iconSize, iconSize)
+
+            Behavior on width {
+                animation: Appearance.animation.elementMoveEnter.numberAnimation.createObject(this)
+            }
+            Behavior on height {
+                animation: Appearance.animation.elementMoveEnter.numberAnimation.createObject(this)
             }
         }
     }
