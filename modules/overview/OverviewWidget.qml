@@ -163,6 +163,11 @@ Item {
                                 return winA?.pinned ? 1 : -1;
                             }
 
+                            // 1.5 Fullscreen windows always on top of floating/tiled
+                            if (winA?.fullscreen !== winB?.fullscreen) {
+                                return winA?.fullscreen ? 1 : -1;
+                            }
+
                             // 2. Floating windows above tiled windows
                             if (winA?.floating !== winB?.floating) {
                                 return winA?.floating ? 1 : -1;
