@@ -155,10 +155,10 @@ Item {
                             // Proper stacking order based on Hyprland's window properties
                             const addrA = `0x${a.HyprlandToplevel.address}`;
                             const addrB = `0x${b.HyprlandToplevel.address}`;
-                            const winA = windowByAddress[addrA];
-                            const winB = windowByAddress[addrB];
 
                             // 1. Pinned windows are always on top
+                            const winA = windowByAddress[addrA];
+                            const winB = windowByAddress[addrB];
                             if (winA?.pinned !== winB?.pinned) {
                                 return winA?.pinned ? 1 : -1;
                             }
@@ -173,9 +173,18 @@ Item {
                                 return winA?.floating ? 1 : -1;
                             }
 
-                            // 3. Within same category, sort by focus history
-                            // Lower focusHistoryID = more recently focused = higher in stack
-                            return (winB?.focusHistoryID ?? 0) - (winA?.focusHistoryID ?? 0);
+                            // [FIXED] 2.5 Active (Selected) Window always on top
+                            // This ensures the window you are dragging/focusing is drawn last (top)
+                            if ((winA?.focusHistoryID ?? 999) === 0)
+                                return 1;
+                            if ((winB?.focusHistoryID ?? 999) === 0)
+                                return -1;
+
+                            // [FIXED] 3. Fallback to stable index
+                            // This keeps background windows from shuffling randomly
+                            const indexA = HyprlandData.windowList.findIndex(w => w.address === addrA);
+                            const indexB = HyprlandData.windowList.findIndex(w => w.address === addrB);
+                            return indexA - indexB;
                         });
                     }
                 }
@@ -219,7 +228,11 @@ Item {
                         }
                     }
 
-                    z: atInitPosition ? (root.windowZ + index) : root.windowDraggingZ
+                    // [FIXED] Z-Index Logic:
+                    // 1. Default to stable layer (root.windowZ + index)
+                    // 2. If Pressed, boost z by 100 to ensure visual pop-to-front during drag
+                    z: root.windowZ + index + (window.pressed ? 100 : 0)
+
                     Drag.hotSpot.x: targetWindowWidth / 2
                     Drag.hotSpot.y: targetWindowHeight / 2
                     MouseArea {
@@ -231,6 +244,9 @@ Item {
                         acceptedButtons: Qt.LeftButton | Qt.MiddleButton
                         drag.target: parent
                         onPressed: mouse => {
+                            // [FIXED] Sync: Focus window in Hyprland immediately on interaction
+                            Hyprland.dispatch(`focuswindow address:${window.windowData?.address}`);
+
                             root.draggingFromWorkspace = windowData?.workspace.id;
                             window.pressed = true;
                             window.Drag.active = true;
