@@ -19,8 +19,10 @@ Item {
 
     property bool isFullscreen: windowData?.fullscreen ?? false
 
-    property real initX: (isFullscreen ? 0 : Math.max(((windowData?.at[0] ?? 0) - (monitorData?.x ?? 0) - (monitorData?.reserved?.[0] ?? 0)) * root.winScale, 0)) + xOffset
-    property real initY: (isFullscreen ? 0 : Math.max(((windowData?.at[1] ?? 0) - (monitorData?.y ?? 0) - (monitorData?.reserved?.[1] ?? 0)) * root.winScale, 0)) + yOffset
+    // [FIX] Adjusted initX/initY to be relative to full monitor (removed reserved subtraction)
+    // This matches the new container logic in OverviewWidget.
+    property real initX: (isFullscreen ? 0 : Math.max(((windowData?.at[0] ?? 0) - (monitorData?.x ?? 0)) * root.winScale, 0)) + xOffset
+    property real initY: (isFullscreen ? 0 : Math.max(((windowData?.at[1] ?? 0) - (monitorData?.y ?? 0)) * root.winScale, 0)) + yOffset
 
     property real xOffset: 0
     property real yOffset: 0

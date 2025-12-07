@@ -25,8 +25,12 @@ Item {
 
     property color activeBorderColor: Appearance.colors.colSecondary
 
-    property real workspaceImplicitWidth: (monitorData?.transform % 2 === 1) ? ((monitor.height / monitor.scale - (monitorData?.reserved?.[0] ?? 0) - (monitorData?.reserved?.[2] ?? 0)) * root.scale) : ((monitor.width / monitor.scale - (monitorData?.reserved?.[0] ?? 0) - (monitorData?.reserved?.[2] ?? 0)) * root.scale)
-    property real workspaceImplicitHeight: (monitorData?.transform % 2 === 1) ? ((monitor.width / monitor.scale - (monitorData?.reserved?.[1] ?? 0) - (monitorData?.reserved?.[3] ?? 0)) * root.scale) : ((monitor.height / monitor.scale - (monitorData?.reserved?.[1] ?? 0) - (monitorData?.reserved?.[3] ?? 0)) * root.scale)
+    // [FIX] Use Logical Monitor Dimensions from Quickshell (Robust 1:1 Aspect Ratio)
+    property real baseWidth: (monitor.transform % 2 === 1) ? monitor.height : monitor.width
+    property real baseHeight: (monitor.transform % 2 === 1) ? monitor.width : monitor.height
+
+    property real workspaceImplicitWidth: Math.floor(baseWidth * root.scale)
+    property real workspaceImplicitHeight: Math.floor(baseHeight * root.scale)
 
     property real workspaceNumberMargin: 80
     property real workspaceNumberSize: 250 * monitor.scale
@@ -191,8 +195,11 @@ Item {
                     toplevel: modelData
                     monitorData: monitor
 
-                    property real sourceMonitorWidth: (monitor?.transform % 2 === 1) ? (monitor?.height ?? 1920) / (monitor?.scale ?? 1) - (monitor?.reserved?.[0] ?? 0) - (monitor?.reserved?.[2] ?? 0) : (monitor?.width ?? 1920) / (monitor?.scale ?? 1) - (monitor?.reserved?.[0] ?? 0) - (monitor?.reserved?.[2] ?? 0)
-                    property real sourceMonitorHeight: (monitor?.transform % 2 === 1) ? (monitor?.width ?? 1080) / (monitor?.scale ?? 1) - (monitor?.reserved?.[1] ?? 0) - (monitor?.reserved?.[3] ?? 0) : (monitor?.height ?? 1080) / (monitor?.scale ?? 1) - (monitor?.reserved?.[1] ?? 0) - (monitor?.reserved?.[3] ?? 0)
+                    // [FIX] Calculate Source Dimensions WITHOUT subtracting reserved space
+                    // This ensures the window scale matches the container scale perfectly (1:1 aspect ratio)
+                    property real sourceMonitorWidth: (monitor?.transform % 2 === 1) ? ((monitor?.height ?? 1920) / (monitor?.scale ?? 1)) : ((monitor?.width ?? 1920) / (monitor?.scale ?? 1))
+
+                    property real sourceMonitorHeight: (monitor?.transform % 2 === 1) ? ((monitor?.width ?? 1080) / (monitor?.scale ?? 1)) : ((monitor?.height ?? 1080) / (monitor?.scale ?? 1))
 
                     winScale: Math.min(root.workspaceImplicitWidth / sourceMonitorWidth, root.workspaceImplicitHeight / sourceMonitorHeight)
 
@@ -213,8 +220,14 @@ Item {
                         repeat: false
                         running: false
                         onTriggered: {
-                            window.x = Math.round(Math.max((windowData?.at[0] - (monitor?.x ?? 0) - (monitorData?.reserved?.[0] ?? 0)) * root.scale, 0) + xOffset);
-                            window.y = Math.round(Math.max((windowData?.at[1] - (monitor?.y ?? 0) - (monitorData?.reserved?.[1] ?? 0)) * root.scale, 0) + yOffset);
+                            // Recalculate position
+                            // Note: windowData.at is global. monitor.x is global.
+                            // We need relative position to monitor.
+                            var relX = (windowData?.at[0] ?? 0) - (monitor?.x ?? 0);
+                            var relY = (windowData?.at[1] ?? 0) - (monitor?.y ?? 0);
+
+                            window.x = Math.round(Math.max(relX * window.winScale, 0) + xOffset);
+                            window.y = Math.round(Math.max(relY * window.winScale, 0) + yOffset);
                         }
                     }
 
