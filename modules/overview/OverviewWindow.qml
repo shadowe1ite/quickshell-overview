@@ -12,18 +12,22 @@ Item {
     property var toplevel
     property var windowData
     property var monitorData
-    property var scale
+    property real winScale: 0.16
     property var availableWorkspaceWidth
     property var availableWorkspaceHeight
     property bool restrictToWorkspace: true
-    property real initX: ((windowData?.at[0] ?? 0) - (monitorData?.x ?? 0) - (monitorData?.reserved?.[0] ?? 0)) * root.scale + xOffset
-    property real initY: ((windowData?.at[1] ?? 0) - (monitorData?.y ?? 0) - (monitorData?.reserved?.[1] ?? 0)) * root.scale + yOffset
+
+    property bool isFullscreen: windowData?.fullscreen ?? false
+
+    property real initX: (isFullscreen ? 0 : Math.max(((windowData?.at[0] ?? 0) - (monitorData?.x ?? 0) - (monitorData?.reserved?.[0] ?? 0)) * root.winScale, 0)) + xOffset
+    property real initY: (isFullscreen ? 0 : Math.max(((windowData?.at[1] ?? 0) - (monitorData?.y ?? 0) - (monitorData?.reserved?.[1] ?? 0)) * root.winScale, 0)) + yOffset
+
     property real xOffset: 0
     property real yOffset: 0
     property int widgetMonitorId: 0
 
-    property var targetWindowWidth: (windowData?.size[0] ?? 100) * scale
-    property var targetWindowHeight: (windowData?.size[1] ?? 100) * scale
+    property var targetWindowWidth: (windowData?.size[0] ?? 100) * winScale
+    property var targetWindowHeight: (windowData?.size[1] ?? 100) * winScale
     property bool hovered: false
     property bool pressed: false
 
@@ -41,8 +45,10 @@ Item {
 
     x: initX
     y: initY
-    width: Math.min((windowData?.size[0] ?? 100) * root.scale, availableWorkspaceWidth)
-    height: Math.min((windowData?.size[1] ?? 100) * root.scale, availableWorkspaceHeight)
+
+    width: isFullscreen ? availableWorkspaceWidth : Math.min((windowData?.size[0] ?? 100) * root.winScale, availableWorkspaceWidth)
+    height: isFullscreen ? availableWorkspaceHeight : Math.min((windowData?.size[1] ?? 100) * root.winScale, availableWorkspaceHeight)
+
     opacity: (windowData?.monitor ?? -1) == widgetMonitorId ? 1 : 0.4
 
     layer.enabled: true
@@ -50,7 +56,7 @@ Item {
         maskSource: Rectangle {
             width: root.width
             height: root.height
-            radius: Appearance.rounding.windowRounding * root.scale
+            radius: Appearance.rounding.windowRounding * root.winScale
         }
     }
 
@@ -75,7 +81,7 @@ Item {
 
         Rectangle {
             anchors.fill: parent
-            radius: Appearance.rounding.windowRounding * root.scale
+            radius: Appearance.rounding.windowRounding * root.winScale
             color: pressed ? ColorUtils.transparentize(Appearance.colors.colLayer2Active, 0.5) : hovered ? ColorUtils.transparentize(Appearance.colors.colLayer2Hover, 0.7) : ColorUtils.transparentize(Appearance.colors.colLayer2)
             border.color: ColorUtils.transparentize(Appearance.m3colors.m3outline, 0.7)
             border.width: 1

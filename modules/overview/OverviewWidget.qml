@@ -22,6 +22,7 @@ Item {
     property var windowAddresses: HyprlandData.addresses
     property var monitorData: HyprlandData.monitors.find(m => m.id === root.monitor?.id)
     property real scale: Config.options.overview.scale
+
     property color activeBorderColor: Appearance.colors.colSecondary
 
     property real workspaceImplicitWidth: (monitorData?.transform % 2 === 1) ? ((monitor.height / monitor.scale - (monitorData?.reserved?.[0] ?? 0) - (monitorData?.reserved?.[2] ?? 0)) * root.scale) : ((monitor.width / monitor.scale - (monitorData?.reserved?.[0] ?? 0) - (monitorData?.reserved?.[2] ?? 0)) * root.scale)
@@ -46,7 +47,7 @@ Item {
     StyledRectangularShadow {
         target: overviewBackground
     }
-    Rectangle { // Background
+    Rectangle {
         id: overviewBackground
         property real padding: 10
         anchors.fill: parent
@@ -58,8 +59,9 @@ Item {
         color: Appearance.colors.colLayer0
         border.width: 1
         border.color: Appearance.colors.colLayer0Border
+        clip: true
 
-        ColumnLayout { // Workspaces
+        ColumnLayout {
             id: workspaceColumnLayout
 
             z: root.workspaceZ
@@ -73,9 +75,8 @@ Item {
                     spacing: workspaceSpacing
 
                     Repeater {
-                        // Workspace repeater
                         model: Config.options.overview.columns
-                        Rectangle { // Workspace
+                        Rectangle {
                             id: workspace
                             property int colIndex: index
                             property int workspaceValue: root.workspaceGroup * workspacesShown + rowIndex * Config.options.overview.columns + colIndex + 1
@@ -136,14 +137,13 @@ Item {
             }
         }
 
-        Item { // Windows & focused workspace indicator
+        Item {
             id: windowSpace
             anchors.centerIn: parent
             implicitWidth: workspaceColumnLayout.implicitWidth
             implicitHeight: workspaceColumnLayout.implicitHeight
 
             Repeater {
-                // Window repeater
                 model: ScriptModel {
                     values: {
                         return ToplevelManager.toplevels.values.filter(toplevel => {
@@ -152,36 +152,28 @@ Item {
                             const inWorkspaceGroup = (root.workspaceGroup * root.workspacesShown < win?.workspace?.id && win?.workspace?.id <= (root.workspaceGroup + 1) * root.workspacesShown);
                             return inWorkspaceGroup;
                         }).sort((a, b) => {
-                            // Proper stacking order based on Hyprland's window properties
                             const addrA = `0x${a.HyprlandToplevel.address}`;
                             const addrB = `0x${b.HyprlandToplevel.address}`;
 
-                            // 1. Pinned windows are always on top
                             const winA = windowByAddress[addrA];
                             const winB = windowByAddress[addrB];
                             if (winA?.pinned !== winB?.pinned) {
                                 return winA?.pinned ? 1 : -1;
                             }
 
-                            // 1.5 Fullscreen windows always on top of floating/tiled
                             if (winA?.fullscreen !== winB?.fullscreen) {
                                 return winA?.fullscreen ? 1 : -1;
                             }
 
-                            // 2. Floating windows above tiled windows
                             if (winA?.floating !== winB?.floating) {
                                 return winA?.floating ? 1 : -1;
                             }
 
-                            // [FIXED] 2.5 Active (Selected) Window always on top
-                            // This ensures the window you are dragging/focusing is drawn last (top)
                             if ((winA?.focusHistoryID ?? 999) === 0)
                                 return 1;
                             if ((winB?.focusHistoryID ?? 999) === 0)
                                 return -1;
 
-                            // [FIXED] 3. Fallback to stable index
-                            // This keeps background windows from shuffling randomly
                             const indexA = HyprlandData.windowList.findIndex(w => w.address === addrA);
                             const indexB = HyprlandData.windowList.findIndex(w => w.address === addrB);
                             return indexA - indexB;
@@ -199,12 +191,10 @@ Item {
                     toplevel: modelData
                     monitorData: monitor
 
-                    // Calculate scale relative to window's source monitor
                     property real sourceMonitorWidth: (monitor?.transform % 2 === 1) ? (monitor?.height ?? 1920) / (monitor?.scale ?? 1) - (monitor?.reserved?.[0] ?? 0) - (monitor?.reserved?.[2] ?? 0) : (monitor?.width ?? 1920) / (monitor?.scale ?? 1) - (monitor?.reserved?.[0] ?? 0) - (monitor?.reserved?.[2] ?? 0)
                     property real sourceMonitorHeight: (monitor?.transform % 2 === 1) ? (monitor?.width ?? 1080) / (monitor?.scale ?? 1) - (monitor?.reserved?.[1] ?? 0) - (monitor?.reserved?.[3] ?? 0) : (monitor?.height ?? 1080) / (monitor?.scale ?? 1) - (monitor?.reserved?.[1] ?? 0) - (monitor?.reserved?.[3] ?? 0)
 
-                    // Scale windows to fit the workspace size, accounting for different monitor sizes
-                    scale: Math.min(root.workspaceImplicitWidth / sourceMonitorWidth, root.workspaceImplicitHeight / sourceMonitorHeight)
+                    winScale: Math.min(root.workspaceImplicitWidth / sourceMonitorWidth, root.workspaceImplicitHeight / sourceMonitorHeight)
 
                     availableWorkspaceWidth: root.workspaceImplicitWidth
                     availableWorkspaceHeight: root.workspaceImplicitHeight
@@ -228,9 +218,6 @@ Item {
                         }
                     }
 
-                    // [FIXED] Z-Index Logic:
-                    // 1. Default to stable layer (root.windowZ + index)
-                    // 2. If Pressed, boost z by 100 to ensure visual pop-to-front during drag
                     z: root.windowZ + index + (window.pressed ? 100 : 0)
 
                     Drag.hotSpot.x: targetWindowWidth / 2
@@ -244,9 +231,6 @@ Item {
                         acceptedButtons: Qt.LeftButton | Qt.MiddleButton
                         drag.target: parent
                         onPressed: mouse => {
-                            // [FIXED] Sync: Focus window in Hyprland immediately on interaction
-                            Hyprland.dispatch(`focuswindow address:${window.windowData?.address}`);
-
                             root.draggingFromWorkspace = windowData?.workspace.id;
                             window.pressed = true;
                             window.Drag.active = true;
@@ -264,12 +248,10 @@ Item {
                                 Hyprland.dispatch(`movetoworkspacesilent ${targetWorkspace}, address:${window.windowData?.address}`);
                                 updateWindowPosition.restart();
                             } else {
-                                // Logic for moving floating windows within the same workspace
                                 if (!window.windowData.floating) {
                                     updateWindowPosition.restart();
                                     return;
                                 }
-                                // Calculate position percentage relative to the workspace preview
                                 const percentageX = Math.round((window.x - xOffset) / root.workspaceImplicitWidth * 100);
                                 const percentageY = Math.round((window.y - yOffset) / root.workspaceImplicitHeight * 100);
 
@@ -279,7 +261,6 @@ Item {
                         onClicked: event => {
                             if (!windowData)
                                 return;
-
                             if (event.button === Qt.LeftButton) {
                                 GlobalStates.overviewOpen = false;
                                 Hyprland.dispatch(`focuswindow address:${windowData.address}`);
@@ -299,14 +280,16 @@ Item {
                 }
             }
 
-            Rectangle { // Focused workspace indicator
+            Rectangle {
                 id: focusedWorkspaceIndicator
                 property int activeWorkspaceInGroup: monitor.activeWorkspace?.id - (root.workspaceGroup * root.workspacesShown)
                 property int activeWorkspaceRowIndex: Math.floor((activeWorkspaceInGroup - 1) / Config.options.overview.columns)
                 property int activeWorkspaceColIndex: (activeWorkspaceInGroup - 1) % Config.options.overview.columns
                 x: (root.workspaceImplicitWidth + workspaceSpacing) * activeWorkspaceColIndex
                 y: (root.workspaceImplicitHeight + workspaceSpacing) * activeWorkspaceRowIndex
-                z: root.windowZ
+
+                z: root.windowZ + 99
+
                 width: root.workspaceImplicitWidth
                 height: root.workspaceImplicitHeight
                 color: "transparent"
