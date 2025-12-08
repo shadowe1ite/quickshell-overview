@@ -8,8 +8,7 @@
   "minNoctaliaVersion": "3.6.0",
   "license": "GPL-3.0",
   "entryPoints": {
-    "main": "Main.qml",
-    "barWidget": "BarWidget.qml"
+    "main": "Main.qml"
   },
   "dependencies": {
     "plugins": []
