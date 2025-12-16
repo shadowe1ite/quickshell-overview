@@ -15,6 +15,7 @@ Singleton {
             property int topMargin: 100
             property bool centerIcons: false
             property bool enable: true
+            property bool showWallpaper: true
         }
 
         property QtObject hacks: QtObject {

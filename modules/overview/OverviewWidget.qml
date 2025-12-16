@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
+import qs.Services.UI
 import "../../common"
 import "../../common/functions"
 import "../../common/widgets"
@@ -22,13 +23,12 @@ Item {
     property var windowAddresses: HyprlandData.addresses
     property var monitorData: HyprlandData.monitors.find(m => m.id === root.monitor?.id)
     property real scale: Config.options.overview.scale
+    readonly property bool showWallpaper: Config.options.overview.showWallpaper ?? false
 
     property color activeBorderColor: Appearance.colors.colSecondary
 
-    // [FIX] Use Logical Monitor Dimensions from Quickshell (Robust 1:1 Aspect Ratio)
     property real baseWidth: (monitor.transform % 2 === 1) ? monitor.height : monitor.width
     property real baseHeight: (monitor.transform % 2 === 1) ? monitor.width : monitor.height
-
     property real workspaceImplicitWidth: Math.floor(baseWidth * root.scale)
     property real workspaceImplicitHeight: Math.floor(baseHeight * root.scale)
 
@@ -47,6 +47,20 @@ Item {
 
     property Component windowComponent: OverviewWindow {}
     property list<OverviewWindow> windowWidgets: []
+
+    // [OPTIMIZATION] Shared image loader (Only active if showWallpaper is true)
+    Image {
+        id: sharedWallpaper
+        visible: false
+        // Only load source if enabled to save resources
+        source: root.showWallpaper ? "file://" + WallpaperService.getWallpaper(root.monitor.name) : ""
+        sourceSize: Qt.size(320, 180)
+        fillMode: Image.PreserveAspectCrop
+        asynchronous: true
+        cache: true
+        mipmap: false
+        smooth: true
+    }
 
     StyledRectangularShadow {
         target: overviewBackground
@@ -91,12 +105,36 @@ Item {
 
                             implicitWidth: root.workspaceImplicitWidth
                             implicitHeight: root.workspaceImplicitHeight
-                            color: hoveredWhileDragging ? hoveredWorkspaceColor : defaultWorkspaceColor
-                            radius: Appearance.rounding.screenRounding * root.scale
+
+                            // Logic: Transparent if wallpaper is on, else standard colors
+                            color: root.showWallpaper ? "transparent" : (hoveredWhileDragging ? hoveredWorkspaceColor : defaultWorkspaceColor)
+
+                            radius: Appearance.rounding.windowRounding
                             border.width: 2
                             border.color: hoveredWhileDragging ? hoveredBorderColor : "transparent"
 
+                            // [FEATURE] Wallpaper Mode (Fast Shader)
+                            ShaderEffect {
+                                visible: root.showWallpaper
+                                anchors.fill: parent
+                                anchors.margins: parent.border.width
+
+                                property variant source: sharedWallpaper
+                                property real itemWidth: width
+                                property real itemHeight: height
+                                property real sourceWidth: sharedWallpaper.sourceSize.width
+                                property real sourceHeight: sharedWallpaper.sourceSize.height
+                                property real cornerRadius: Math.max(0, parent.radius - parent.border.width)
+                                property real imageOpacity: 1.0
+                                property int fillMode: Image.PreserveAspectCrop
+
+                                fragmentShader: Qt.resolvedUrl(Quickshell.shellDir + "/Shaders/qsb/rounded_image.frag.qsb")
+                                blending: true
+                            }
+
+                            // [FEATURE] Classic Mode (Workspace Number)
                             StyledText {
+                                visible: !root.showWallpaper
                                 anchors.centerIn: parent
                                 text: workspaceValue
                                 font {
@@ -177,7 +215,6 @@ Item {
                                 return 1;
                             if ((winB?.focusHistoryID ?? 999) === 0)
                                 return -1;
-
                             const indexA = HyprlandData.windowList.findIndex(w => w.address === addrA);
                             const indexB = HyprlandData.windowList.findIndex(w => w.address === addrB);
                             return indexA - indexB;
@@ -195,8 +232,6 @@ Item {
                     toplevel: modelData
                     monitorData: monitor
 
-                    // [FIX] Calculate Source Dimensions WITHOUT subtracting reserved space
-                    // This ensures the window scale matches the container scale perfectly (1:1 aspect ratio)
                     property real sourceMonitorWidth: (monitor?.transform % 2 === 1) ? ((monitor?.height ?? 1920) / (monitor?.scale ?? 1)) : ((monitor?.width ?? 1920) / (monitor?.scale ?? 1))
 
                     property real sourceMonitorHeight: (monitor?.transform % 2 === 1) ? ((monitor?.width ?? 1080) / (monitor?.scale ?? 1)) : ((monitor?.height ?? 1080) / (monitor?.scale ?? 1))
@@ -220,9 +255,6 @@ Item {
                         repeat: false
                         running: false
                         onTriggered: {
-                            // Recalculate position
-                            // Note: windowData.at is global. monitor.x is global.
-                            // We need relative position to monitor.
                             var relX = (windowData?.at[0] ?? 0) - (monitor?.x ?? 0);
                             var relY = (windowData?.at[1] ?? 0) - (monitor?.y ?? 0);
 
@@ -306,7 +338,10 @@ Item {
                 width: root.workspaceImplicitWidth
                 height: root.workspaceImplicitHeight
                 color: "transparent"
-                radius: Appearance.rounding.screenRounding * root.scale
+
+                // Matches the radius of the workspace/wallpaper
+                radius: Appearance.rounding.windowRounding
+
                 border.width: 2
                 border.color: root.activeBorderColor
                 Behavior on x {
