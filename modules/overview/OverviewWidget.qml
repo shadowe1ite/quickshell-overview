@@ -8,15 +8,19 @@ import "../../common"
 import "../../common/functions"
 import "../../common/widgets"
 import "../../services"
-import "."
 
 Item {
     id: root
-    required property var panelWindow
-    readonly property HyprlandMonitor monitor: Hyprland.monitorFor(panelWindow.screen)
+
+    // [FIX] Ensure we receive the monitor
+    required property var monitor
+
     readonly property var toplevels: ToplevelManager.toplevels
     readonly property int workspacesShown: Config.options.overview.rows * Config.options.overview.columns
-    readonly property int workspaceGroup: Math.floor((monitor.activeWorkspace?.id - 1) / workspacesShown)
+
+    // [FIX] Add fallback (?? 1) to prevent "undefined to int" error on startup
+    readonly property int workspaceGroup: Math.floor(((monitor.activeWorkspace?.id ?? 1) - 1) / workspacesShown)
+
     property bool monitorIsFocused: (Hyprland.focusedMonitor?.name == monitor.name)
     property var windows: HyprlandData.windowList
     property var windowByAddress: HyprlandData.windowByAddress
@@ -26,7 +30,6 @@ Item {
 
     readonly property bool showWallpaper: Config.options.overview.showWallpaper ?? false
 
-    // Padding matches border width (2px)
     readonly property real cardPadding: 2
 
     property color activeBorderColor: Appearance.colors.colSecondary
@@ -42,7 +45,6 @@ Item {
     property int windowZ: 1
     property int windowDraggingZ: 99999
 
-    // Use real Hyprland gaps for spacing
     property real workspaceSpacing: Math.max(HyprlandData.gapsIn * root.scale, 5)
 
     property int draggingFromWorkspace: -1
@@ -244,18 +246,14 @@ Item {
 
                     property real sourceMonitorHeight: (monitor?.transform % 2 === 1) ? ((monitor?.width ?? 1080) / (monitor?.scale ?? 1)) : ((monitor?.height ?? 1080) / (monitor?.scale ?? 1))
 
-                    // [FIX] Conditional scale: Fullscreen ignores padding
                     winScale: isFullscreen ? Math.min(root.workspaceImplicitWidth / sourceMonitorWidth, root.workspaceImplicitHeight / sourceMonitorHeight) : Math.min((root.workspaceImplicitWidth - root.cardPadding * 2) / sourceMonitorWidth, (root.workspaceImplicitHeight - root.cardPadding * 2) / sourceMonitorHeight)
 
-                    // Calculate dimensions and centering offsets
                     property real contentWidth: sourceMonitorWidth * winScale
                     property real contentHeight: sourceMonitorHeight * winScale
 
-                    // [FIX] Centering only applies if NOT fullscreen
                     property real centeringX: isFullscreen ? 0 : (availableWorkspaceWidth - contentWidth) / 2
                     property real centeringY: isFullscreen ? 0 : (availableWorkspaceHeight - contentHeight) / 2
 
-                    // [FIX] Fullscreen gets full width, others get padded width
                     availableWorkspaceWidth: isFullscreen ? root.workspaceImplicitWidth : (root.workspaceImplicitWidth - root.cardPadding * 2)
                     availableWorkspaceHeight: isFullscreen ? root.workspaceImplicitHeight : (root.workspaceImplicitHeight - root.cardPadding * 2)
 
@@ -266,11 +264,9 @@ Item {
                     property int workspaceColIndex: (windowData?.workspace.id - 1) % Config.options.overview.columns
                     property int workspaceRowIndex: Math.floor((windowData?.workspace.id - 1) % root.workspacesShown / Config.options.overview.columns)
 
-                    // [FIX] Fullscreen starts at 0 (ignoring padding/centering)
                     xOffset: (root.workspaceImplicitWidth + workspaceSpacing) * workspaceColIndex + (isFullscreen ? 0 : root.cardPadding) + centeringX
                     yOffset: (root.workspaceImplicitHeight + workspaceSpacing) * workspaceRowIndex + (isFullscreen ? 0 : root.cardPadding) + centeringY
 
-                    // [FIX] Force size for fullscreen windows to fill the card
                     width: isFullscreen ? root.workspaceImplicitWidth : Math.min((windowData?.size[0] ?? 100) * winScale, contentWidth)
                     height: isFullscreen ? root.workspaceImplicitHeight : Math.min((windowData?.size[1] ?? 100) * winScale, contentHeight)
 

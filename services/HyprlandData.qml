@@ -18,8 +18,9 @@ Singleton {
     property var monitors: []
     property var layers: ({})
 
-    // [NEW] Store Hyprland gaps
+    // [FIX] Initialize with safe defaults
     property int gapsIn: 5
+    property int rounding: 0
 
     function updateWindowList() {
         getClients.running = true;
@@ -38,9 +39,9 @@ Singleton {
         getActiveWorkspace.running = true;
     }
 
-    // [NEW] Update function for gaps
     function updateGaps() {
         getGapsIn.running = true;
+        getRounding.running = true;
     }
 
     function updateAll() {
@@ -48,7 +49,7 @@ Singleton {
         updateMonitors();
         updateLayers();
         updateWorkspaces();
-        updateGaps(); // [NEW]
+        updateGaps();
     }
 
     Component.onCompleted: {
@@ -62,16 +63,30 @@ Singleton {
         }
     }
 
-    // [NEW] Fetch the "gaps_in" value from Hyprland
+    // [FIX] Use safer parsing (JSON.parse(text)["int"] ?? default)
+    Process {
+        id: getRounding
+        command: ["hyprctl", "getoption", "decoration:rounding", "-j"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    root.rounding = JSON.parse(text)["int"] ?? 0;
+                } catch (e) {
+                    root.rounding = 0;
+                }
+            }
+        }
+    }
+
     Process {
         id: getGapsIn
         command: ["hyprctl", "getoption", "general:gaps_in", "-j"]
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
-                    root.gapsIn = JSON.parse(text).int;
+                    root.gapsIn = JSON.parse(text)["int"] ?? 5;
                 } catch (e) {
-                    root.gapsIn = 5; // Fallback
+                    root.gapsIn = 5;
                 }
             }
         }

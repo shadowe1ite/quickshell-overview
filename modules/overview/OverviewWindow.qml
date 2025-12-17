@@ -17,10 +17,11 @@ Item {
     property var availableWorkspaceHeight
     property bool restrictToWorkspace: true
 
+    // [NEW] Controls how much to increase the rounding.
+    readonly property real roundingMultiplier: 1
+
     property bool isFullscreen: windowData?.fullscreen ?? false
 
-    // [FIX] Adjusted initX/initY to be relative to full monitor (removed reserved subtraction)
-    // This matches the new container logic in OverviewWidget.
     property real initX: (isFullscreen ? 0 : Math.max(((windowData?.at[0] ?? 0) - (monitorData?.x ?? 0)) * root.winScale, 0)) + xOffset
     property real initY: (isFullscreen ? 0 : Math.max(((windowData?.at[1] ?? 0) - (monitorData?.y ?? 0)) * root.winScale, 0)) + yOffset
 
@@ -58,7 +59,8 @@ Item {
         maskSource: Rectangle {
             width: root.width
             height: root.height
-            radius: Appearance.rounding.windowRounding * root.winScale
+            // [FIX] Multiply Hyprland's rounding by our multiplier
+            radius: (isFullscreen ? 0 : HyprlandData.rounding) * root.winScale * root.roundingMultiplier
         }
     }
 
@@ -83,7 +85,9 @@ Item {
 
         Rectangle {
             anchors.fill: parent
-            radius: Appearance.rounding.windowRounding * root.winScale
+            // [FIX] Multiply here as well
+            radius: (isFullscreen ? 0 : HyprlandData.rounding) * root.winScale * root.roundingMultiplier
+
             color: pressed ? ColorUtils.transparentize(Appearance.colors.colLayer2Active, 0.5) : hovered ? ColorUtils.transparentize(Appearance.colors.colLayer2Hover, 0.7) : ColorUtils.transparentize(Appearance.colors.colLayer2)
             border.color: ColorUtils.transparentize(Appearance.m3colors.m3outline, 0.7)
             border.width: 1

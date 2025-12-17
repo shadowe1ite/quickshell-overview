@@ -125,10 +125,10 @@ Scope {
 
                 Loader {
                     id: overviewLoader
-                    // Removed "GlobalStates.overviewOpen &&" to keep widget loaded in memory
-                    active: (Config?.options.overview.enable ?? true)
+                    // [FIX] Ensure monitor exists to prevent QObject* error
+                    active: (Config?.options.overview.enable ?? true) && (root.monitor !== null)
                     sourceComponent: OverviewWidget {
-                        panelWindow: root
+                        monitor: root.monitor
                         visible: true
                     }
                 }
