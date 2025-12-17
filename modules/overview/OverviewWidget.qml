@@ -67,13 +67,14 @@ Item {
         // Only load source if enabled to save resources
         source: root.showWallpaper ? "file://" + WallpaperService.getWallpaper(root.monitor.name) : ""
 
-        // [OPTIMIZATION] Load at specific size to save memory and performance
-        sourceSize: Qt.size(root.workspaceImplicitWidth, root.workspaceImplicitHeight)
+        // [FIX] Removed sourceSize to prevent stretching.
+        // The image will load at original aspect ratio, and the ShaderEffect will crop it.
+        // sourceSize: Qt.size(root.workspaceImplicitWidth, root.workspaceImplicitHeight)
 
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
         cache: true
-        mipmap: false
+        mipmap: false // Set to true if you see jagged edges on the wallpaper
         smooth: true
     }
 
@@ -138,8 +139,10 @@ Item {
                                 property real itemWidth: width
                                 property real itemHeight: height
 
+                                // These will now read the CORRECT original dimensions
                                 property real sourceWidth: sharedWallpaper.sourceSize.width
                                 property real sourceHeight: sharedWallpaper.sourceSize.height
+
                                 property real cornerRadius: Math.max(0, parent.radius - parent.border.width)
                                 property real imageOpacity: 1.0
                                 property int fillMode: Image.PreserveAspectCrop
