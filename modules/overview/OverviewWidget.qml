@@ -23,6 +23,7 @@ Item {
     property var windowAddresses: HyprlandData.addresses
     property var monitorData: HyprlandData.monitors.find(m => m.id === root.monitor?.id)
     property real scale: Config.options.overview.scale
+
     readonly property bool showWallpaper: Config.options.overview.showWallpaper ?? false
 
     property color activeBorderColor: Appearance.colors.colSecondary
@@ -48,13 +49,27 @@ Item {
     property Component windowComponent: OverviewWindow {}
     property list<OverviewWindow> windowWidgets: []
 
+    // [FIX] Update wallpaper when opening the overview
+    Connections {
+        target: GlobalStates
+        function onOverviewOpenChanged() {
+            if (GlobalStates.overviewOpen && root.showWallpaper) {
+                // Check for new wallpaper path
+                sharedWallpaper.source = "file://" + WallpaperService.getWallpaper(root.monitor.name);
+            }
+        }
+    }
+
     // [OPTIMIZATION] Shared image loader (Only active if showWallpaper is true)
     Image {
         id: sharedWallpaper
         visible: false
         // Only load source if enabled to save resources
         source: root.showWallpaper ? "file://" + WallpaperService.getWallpaper(root.monitor.name) : ""
-        sourceSize: Qt.size(320, 180)
+
+        // [OPTIMIZATION] Load at specific size to save memory and performance
+        sourceSize: Qt.size(root.workspaceImplicitWidth, root.workspaceImplicitHeight)
+
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
         cache: true
@@ -122,6 +137,7 @@ Item {
                                 property variant source: sharedWallpaper
                                 property real itemWidth: width
                                 property real itemHeight: height
+
                                 property real sourceWidth: sharedWallpaper.sourceSize.width
                                 property real sourceHeight: sharedWallpaper.sourceSize.height
                                 property real cornerRadius: Math.max(0, parent.radius - parent.border.width)
@@ -199,6 +215,7 @@ Item {
 
                             const winA = windowByAddress[addrA];
                             const winB = windowByAddress[addrB];
+
                             if (winA?.pinned !== winB?.pinned) {
                                 return winA?.pinned ? 1 : -1;
                             }
@@ -215,6 +232,7 @@ Item {
                                 return 1;
                             if ((winB?.focusHistoryID ?? 999) === 0)
                                 return -1;
+
                             const indexA = HyprlandData.windowList.findIndex(w => w.address === addrA);
                             const indexB = HyprlandData.windowList.findIndex(w => w.address === addrB);
                             return indexA - indexB;
@@ -246,6 +264,7 @@ Item {
 
                     property int workspaceColIndex: (windowData?.workspace.id - 1) % Config.options.overview.columns
                     property int workspaceRowIndex: Math.floor((windowData?.workspace.id - 1) % root.workspacesShown / Config.options.overview.columns)
+
                     xOffset: (root.workspaceImplicitWidth + workspaceSpacing) * workspaceColIndex
                     yOffset: (root.workspaceImplicitHeight + workspaceSpacing) * workspaceRowIndex
 
@@ -257,7 +276,6 @@ Item {
                         onTriggered: {
                             var relX = (windowData?.at[0] ?? 0) - (monitor?.x ?? 0);
                             var relY = (windowData?.at[1] ?? 0) - (monitor?.y ?? 0);
-
                             window.x = Math.round(Math.max(relX * window.winScale, 0) + xOffset);
                             window.y = Math.round(Math.max(relY * window.winScale, 0) + yOffset);
                         }

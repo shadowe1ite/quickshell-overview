@@ -125,7 +125,8 @@ Scope {
 
                 Loader {
                     id: overviewLoader
-                    active: GlobalStates.overviewOpen && (Config?.options.overview.enable ?? true)
+                    // Removed "GlobalStates.overviewOpen &&" to keep widget loaded in memory
+                    active: (Config?.options.overview.enable ?? true)
                     sourceComponent: OverviewWidget {
                         panelWindow: root
                         visible: true
