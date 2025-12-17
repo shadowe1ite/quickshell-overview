@@ -26,6 +26,9 @@ Item {
 
     readonly property bool showWallpaper: Config.options.overview.showWallpaper ?? false
 
+    // Padding matches border width (2px)
+    readonly property real cardPadding: 2
+
     property color activeBorderColor: Appearance.colors.colSecondary
 
     property real baseWidth: (monitor.transform % 2 === 1) ? monitor.height : monitor.width
@@ -38,7 +41,9 @@ Item {
     property int workspaceZ: 0
     property int windowZ: 1
     property int windowDraggingZ: 99999
-    property real workspaceSpacing: 5
+
+    // Use real Hyprland gaps for spacing
+    property real workspaceSpacing: Math.max(HyprlandData.gapsIn * root.scale, 5)
 
     property int draggingFromWorkspace: -1
     property int draggingTargetWorkspace: -1
@@ -49,32 +54,23 @@ Item {
     property Component windowComponent: OverviewWindow {}
     property list<OverviewWindow> windowWidgets: []
 
-    // [FIX] Update wallpaper when opening the overview
     Connections {
         target: GlobalStates
         function onOverviewOpenChanged() {
             if (GlobalStates.overviewOpen && root.showWallpaper) {
-                // Check for new wallpaper path
                 sharedWallpaper.source = "file://" + WallpaperService.getWallpaper(root.monitor.name);
             }
         }
     }
 
-    // [OPTIMIZATION] Shared image loader (Only active if showWallpaper is true)
     Image {
         id: sharedWallpaper
         visible: false
-        // Only load source if enabled to save resources
         source: root.showWallpaper ? "file://" + WallpaperService.getWallpaper(root.monitor.name) : ""
-
-        // [FIX] Removed sourceSize to prevent stretching.
-        // The image will load at original aspect ratio, and the ShaderEffect will crop it.
-        // sourceSize: Qt.size(root.workspaceImplicitWidth, root.workspaceImplicitHeight)
-
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
         cache: true
-        mipmap: false // Set to true if you see jagged edges on the wallpaper
+        mipmap: false
         smooth: true
     }
 
@@ -122,14 +118,12 @@ Item {
                             implicitWidth: root.workspaceImplicitWidth
                             implicitHeight: root.workspaceImplicitHeight
 
-                            // Logic: Transparent if wallpaper is on, else standard colors
                             color: root.showWallpaper ? "transparent" : (hoveredWhileDragging ? hoveredWorkspaceColor : defaultWorkspaceColor)
 
                             radius: Appearance.rounding.windowRounding
                             border.width: 2
                             border.color: hoveredWhileDragging ? hoveredBorderColor : "transparent"
 
-                            // [FEATURE] Wallpaper Mode (Fast Shader)
                             ShaderEffect {
                                 visible: root.showWallpaper
                                 anchors.fill: parent
@@ -139,10 +133,8 @@ Item {
                                 property real itemWidth: width
                                 property real itemHeight: height
 
-                                // These will now read the CORRECT original dimensions
                                 property real sourceWidth: sharedWallpaper.sourceSize.width
                                 property real sourceHeight: sharedWallpaper.sourceSize.height
-
                                 property real cornerRadius: Math.max(0, parent.radius - parent.border.width)
                                 property real imageOpacity: 1.0
                                 property int fillMode: Image.PreserveAspectCrop
@@ -151,7 +143,6 @@ Item {
                                 blending: true
                             }
 
-                            // [FEATURE] Classic Mode (Workspace Number)
                             StyledText {
                                 visible: !root.showWallpaper
                                 anchors.centerIn: parent
@@ -219,18 +210,12 @@ Item {
                             const winA = windowByAddress[addrA];
                             const winB = windowByAddress[addrB];
 
-                            if (winA?.pinned !== winB?.pinned) {
+                            if (winA?.pinned !== winB?.pinned)
                                 return winA?.pinned ? 1 : -1;
-                            }
-
-                            if (winA?.fullscreen !== winB?.fullscreen) {
+                            if (winA?.fullscreen !== winB?.fullscreen)
                                 return winA?.fullscreen ? 1 : -1;
-                            }
-
-                            if (winA?.floating !== winB?.floating) {
+                            if (winA?.floating !== winB?.floating)
                                 return winA?.floating ? 1 : -1;
-                            }
-
                             if ((winA?.focusHistoryID ?? 999) === 0)
                                 return 1;
                             if ((winB?.focusHistoryID ?? 999) === 0)
@@ -253,14 +238,27 @@ Item {
                     toplevel: modelData
                     monitorData: monitor
 
+                    property bool isFullscreen: windowData?.fullscreen ?? false
+
                     property real sourceMonitorWidth: (monitor?.transform % 2 === 1) ? ((monitor?.height ?? 1920) / (monitor?.scale ?? 1)) : ((monitor?.width ?? 1920) / (monitor?.scale ?? 1))
 
                     property real sourceMonitorHeight: (monitor?.transform % 2 === 1) ? ((monitor?.width ?? 1080) / (monitor?.scale ?? 1)) : ((monitor?.height ?? 1080) / (monitor?.scale ?? 1))
 
-                    winScale: Math.min(root.workspaceImplicitWidth / sourceMonitorWidth, root.workspaceImplicitHeight / sourceMonitorHeight)
+                    // [FIX] Conditional scale: Fullscreen ignores padding
+                    winScale: isFullscreen ? Math.min(root.workspaceImplicitWidth / sourceMonitorWidth, root.workspaceImplicitHeight / sourceMonitorHeight) : Math.min((root.workspaceImplicitWidth - root.cardPadding * 2) / sourceMonitorWidth, (root.workspaceImplicitHeight - root.cardPadding * 2) / sourceMonitorHeight)
 
-                    availableWorkspaceWidth: root.workspaceImplicitWidth
-                    availableWorkspaceHeight: root.workspaceImplicitHeight
+                    // Calculate dimensions and centering offsets
+                    property real contentWidth: sourceMonitorWidth * winScale
+                    property real contentHeight: sourceMonitorHeight * winScale
+
+                    // [FIX] Centering only applies if NOT fullscreen
+                    property real centeringX: isFullscreen ? 0 : (availableWorkspaceWidth - contentWidth) / 2
+                    property real centeringY: isFullscreen ? 0 : (availableWorkspaceHeight - contentHeight) / 2
+
+                    // [FIX] Fullscreen gets full width, others get padded width
+                    availableWorkspaceWidth: isFullscreen ? root.workspaceImplicitWidth : (root.workspaceImplicitWidth - root.cardPadding * 2)
+                    availableWorkspaceHeight: isFullscreen ? root.workspaceImplicitHeight : (root.workspaceImplicitHeight - root.cardPadding * 2)
+
                     widgetMonitorId: root.monitor.id
 
                     property bool atInitPosition: (initX == x && initY == y)
@@ -268,8 +266,13 @@ Item {
                     property int workspaceColIndex: (windowData?.workspace.id - 1) % Config.options.overview.columns
                     property int workspaceRowIndex: Math.floor((windowData?.workspace.id - 1) % root.workspacesShown / Config.options.overview.columns)
 
-                    xOffset: (root.workspaceImplicitWidth + workspaceSpacing) * workspaceColIndex
-                    yOffset: (root.workspaceImplicitHeight + workspaceSpacing) * workspaceRowIndex
+                    // [FIX] Fullscreen starts at 0 (ignoring padding/centering)
+                    xOffset: (root.workspaceImplicitWidth + workspaceSpacing) * workspaceColIndex + (isFullscreen ? 0 : root.cardPadding) + centeringX
+                    yOffset: (root.workspaceImplicitHeight + workspaceSpacing) * workspaceRowIndex + (isFullscreen ? 0 : root.cardPadding) + centeringY
+
+                    // [FIX] Force size for fullscreen windows to fill the card
+                    width: isFullscreen ? root.workspaceImplicitWidth : Math.min((windowData?.size[0] ?? 100) * winScale, contentWidth)
+                    height: isFullscreen ? root.workspaceImplicitHeight : Math.min((windowData?.size[1] ?? 100) * winScale, contentHeight)
 
                     Timer {
                         id: updateWindowPosition
@@ -318,8 +321,8 @@ Item {
                                     updateWindowPosition.restart();
                                     return;
                                 }
-                                const percentageX = Math.round((window.x - xOffset) / root.workspaceImplicitWidth * 100);
-                                const percentageY = Math.round((window.y - yOffset) / root.workspaceImplicitHeight * 100);
+                                const percentageX = Math.round((window.x - xOffset) / (root.workspaceImplicitWidth - root.cardPadding * 2) * 100);
+                                const percentageY = Math.round((window.y - yOffset) / (root.workspaceImplicitHeight - root.cardPadding * 2) * 100);
 
                                 Hyprland.dispatch(`movewindowpixel exact ${percentageX}% ${percentageY}%, address:${window.windowData?.address}`);
                             }
@@ -360,7 +363,6 @@ Item {
                 height: root.workspaceImplicitHeight
                 color: "transparent"
 
-                // Matches the radius of the workspace/wallpaper
                 radius: Appearance.rounding.windowRounding
 
                 border.width: 2

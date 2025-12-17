@@ -6,9 +6,6 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
 
-/**
- * Provides access to some Hyprland data not available in Quickshell.Hyprland.
- */
 Singleton {
     id: root
     property var windowList: []
@@ -20,6 +17,9 @@ Singleton {
     property var activeWorkspace: null
     property var monitors: []
     property var layers: ({})
+
+    // [NEW] Store Hyprland gaps
+    property int gapsIn: 5
 
     function updateWindowList() {
         getClients.running = true;
@@ -38,20 +38,17 @@ Singleton {
         getActiveWorkspace.running = true;
     }
 
+    // [NEW] Update function for gaps
+    function updateGaps() {
+        getGapsIn.running = true;
+    }
+
     function updateAll() {
         updateWindowList();
         updateMonitors();
         updateLayers();
         updateWorkspaces();
-    }
-
-    function biggestWindowForWorkspace(workspaceId) {
-        const windowsInThisWorkspace = HyprlandData.windowList.filter(w => w.workspace.id == workspaceId);
-        return windowsInThisWorkspace.reduce((maxWin, win) => {
-            const maxArea = (maxWin?.size?.[0] ?? 0) * (maxWin?.size?.[1] ?? 0);
-            const winArea = (win?.size?.[0] ?? 0) * (win?.size?.[1] ?? 0);
-            return winArea > maxArea ? win : maxWin;
-        }, null);
+        updateGaps(); // [NEW]
     }
 
     Component.onCompleted: {
@@ -60,9 +57,23 @@ Singleton {
 
     Connections {
         target: Hyprland
-
         function onRawEvent(event) {
-            updateAll()
+            updateAll();
+        }
+    }
+
+    // [NEW] Fetch the "gaps_in" value from Hyprland
+    Process {
+        id: getGapsIn
+        command: ["hyprctl", "getoption", "general:gaps_in", "-j"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    root.gapsIn = JSON.parse(text).int;
+                } catch (e) {
+                    root.gapsIn = 5; // Fallback
+                }
+            }
         }
     }
 
@@ -72,7 +83,7 @@ Singleton {
         stdout: StdioCollector {
             id: clientsCollector
             onStreamFinished: {
-                root.windowList = JSON.parse(clientsCollector.text)
+                root.windowList = JSON.parse(clientsCollector.text);
                 let tempWinByAddress = {};
                 for (var i = 0; i < root.windowList.length; ++i) {
                     var win = root.windowList[i];
